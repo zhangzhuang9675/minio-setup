@@ -271,7 +271,7 @@ E:\MinIO\tunnel\cloudflared.exe tunnel --no-autoupdate --protocol http2 --edge-i
 & "$Root\Show-Public-Endpoint.ps1"
 ```
 
-不要同时使用前台和后台方式，以免自己混淆不同隧道地址。后台脚本的当前地址保存在 `E:\MinIO\tunnel\current-tunnel.json`，日志在 `logs`。双击 `Show-Public-Endpoint.cmd` 可以再次查看地址和健康状态。
+不要同时使用前台和后台方式，以免自己混淆不同隧道地址。后台脚本会先验证状态文件中的地址；如果地址已经失效，会停止旧进程、重新建立隧道，并在公共健康检查返回 200 后才输出新地址。当前地址保存在 `E:\MinIO\tunnel\current-tunnel.json`，日志在 `logs`。双击 `Show-Public-Endpoint.cmd` 可以再次查看地址和健康状态。
 
 检查公共地址，把下面示例换成刚分配的真实地址：
 

@@ -12,7 +12,7 @@
 | 内网能访问网页，程序仍报证书错 | 程序可能使用 JVM/容器/自带 CA 库 | 在程序真正使用的信任库配置 CA |
 | 内网另一台机器连接超时 | IP、网段、Wi-Fi 客户端隔离、VPN、防火墙 | 确认到 `9000` 的路径；按需放行 Private/LocalSubnet，不关闭防火墙 |
 | 公共隧道域名打开是 502 | MinIO 未启动，源站 TLS 校验失败 | 先通过本机状态检查，再核对 CA 路径与 `localhost` SAN |
-| 公共域名失效或连接不到隧道 | 进程退出、电脑睡眠、断网、旧域名 | 查看最新日志和当前状态；重新启动后更新第三方 Endpoint |
+| 公共域名失效或连接不到隧道 | 进程退出、电脑睡眠、断网、旧域名 | 重新运行 `Start-Public-Tunnel.ps1`；脚本现在会先检查已保存地址的公共健康状态，失效时自动重建并输出新 Endpoint，然后更新第三方配置 |
 | Tunnel 分配地址但一直连不上 | 出站网络或代理拦截，TCP 7844 不通 | 按网络策略允许 cloudflared 必要的出站访问，查看日志 |
 | Quick Tunnel 启动异常且已有 Cloudflare 配置 | 用户 `.cloudflared` 目录已有 `config.yaml` | 核对官方 Quick Tunnel 配置冲突说明；先备份并辨别其他隧道用途，不盲目删除 |
 | 浏览器打开 S3 根地址显示 XML / AccessDenied | 打开的是 API，且没有 S3 签名 | 可能是正常响应；健康检查用 `/minio/health/ready`，管理页面用本机 `9001` |

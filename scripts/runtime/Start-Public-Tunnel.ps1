@@ -7,8 +7,18 @@ if (Test-Path -LiteralPath $stateFile) {
     $state = Get-Content -LiteralPath $stateFile -Raw | ConvertFrom-Json
     $existing = Get-CimInstance Win32_Process -Filter "ProcessId=$($state.pid)" -ErrorAction SilentlyContinue
     if ($existing -and $existing.ExecutablePath -eq $exe) {
-        Write-Output "Tunnel process is already running (PID $($state.pid)). Last assigned URL: $($state.url)"
-        exit 0
+        $currentStatus = $null
+        if ($state.url) {
+            $currentStatus = & curl.exe --noproxy '*' --silent --show-error --output NUL --write-out '%{http_code}' --connect-timeout 5 --max-time 10 ($state.url + '/minio/health/ready') 2>$null
+        }
+        if ($LASTEXITCODE -eq 0 -and $currentStatus -eq '200') {
+            Write-Output "Tunnel process is already running (PID $($state.pid)). Public health HTTP 200. URL: $($state.url)"
+            exit 0
+        }
+        Write-Output 'The saved tunnel process has no working public health endpoint. Recreating it.'
+        Stop-Process -Id $state.pid -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 2
+        Remove-Item -LiteralPath $stateFile -Force -ErrorAction SilentlyContinue
     }
 }
 $caFile = Join-Path $root 'client-certs\minio-root-ca.crt'
@@ -31,9 +41,16 @@ for ($attempt=0; $attempt -lt 45; $attempt++) {
     if ($log -match 'https://[a-z0-9-]+\.trycloudflare\.com') {
         $state.url = $Matches[0]
         $state | ConvertTo-Json | Set-Content -LiteralPath $stateFile
-        Write-Output "Assigned temporary public HTTPS endpoint: $($state.url)"
-        Write-Output 'Check public connectivity before using it. Restarting this tunnel changes the endpoint.'
-        exit 0
+        for ($healthAttempt=0; $healthAttempt -lt 15; $healthAttempt++) {
+            $status = & curl.exe --noproxy '*' --silent --show-error --output NUL --write-out '%{http_code}' --connect-timeout 5 --max-time 10 ($state.url + '/minio/health/ready') 2>$null
+            if ($LASTEXITCODE -eq 0 -and $status -eq '200') {
+                Write-Output "Assigned temporary public HTTPS endpoint: $($state.url) (health HTTP 200)"
+                Write-Output 'Restarting this tunnel changes the endpoint; update the third-party program when this address changes.'
+                exit 0
+            }
+            Start-Sleep -Seconds 1
+        }
+        throw "Public URL was assigned but did not return health HTTP 200: $($state.url)"
     }
 }
 throw "No public URL assigned within 45 seconds. Check $stderr"
