@@ -20,6 +20,7 @@ $env:MINIO_ROOT_USER = $credential.UserName
 $env:MINIO_ROOT_PASSWORD = $credential.GetNetworkCredential().Password
 $env:MINIO_BROWSER = 'on'
 $env:MINIO_BROWSER_REDIRECT_URL = 'https://127.0.0.1:9001'
+$env:MINIO_API_CORS_ALLOW_ORIGIN = '*'
 $env:MINIO_UPDATE = 'off'
 $env:TEMP = Join-Path $root 'tmp'
 $env:TMP = $env:TEMP
